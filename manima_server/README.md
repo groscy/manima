@@ -83,6 +83,21 @@ invariant 3), then prints the launch line your MCP client uses. Opt into the gen
 with `make generate-up` (starts Qdrant; vLLM stays external). See the
 [root README](../README.md) for both deployment shapes and the Docker-socket trade-off.
 
+### Run from the published image (skip the local TeX build)
+
+The render image is published to GHCR on release tags. To deploy from it instead of
+building the ~9-minute TeX image locally:
+
+```bash
+make deploy-pull   # docker compose pulls ghcr.io/groscy/manima-render:pinned → preflight → smoke
+```
+
+`deploy-pull` sets `MANIMA_RENDER_IMAGE` to the GHCR ref — the same variable
+`config.py` reads — so the sandbox spawns render containers from exactly the image that was
+pulled. The package is public, so no `docker login` is needed; the pull is ~2.35 GB. To wire
+it manually, set `MANIMA_RENDER_IMAGE=ghcr.io/groscy/manima-render:pinned` before launching
+the server. Available tags: `pinned` and the pinned Manim CE version (e.g. `0.18.1`).
+
 Under the hood, `scripts/bringup.sh` is the annotated step-by-step sequence (design
 Migration Plan): build image → verify Docker → start vLLM → build corpus/Qdrant → start
 server. The render path is live after the Docker step; the generate path needs vLLM + Qdrant.
@@ -93,7 +108,7 @@ generate-path dependency at all.
 ## CI
 
 GitHub Actions ([`.github/workflows/ci.yml`](../.github/workflows/ci.yml)) runs the offline
-suite, `ruff` + `hadolint`, `openspec validate --all --strict`, and a render-image build
+suite, `ruff` + `hadolint`, `openspec validate --specs --strict`, and a render-image build
 check (published to GHCR only on release tags) — all GPU-free. The generate path's live
 behaviour (Apertus/vLLM, Qdrant, GPU renders) is **not** run in CI and is not faked green;
 it is verified on real hardware. `pip install -e ".[dev]"` gets the test + lint toolchain.
