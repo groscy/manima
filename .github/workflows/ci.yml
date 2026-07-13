@@ -9,7 +9,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [master]
     tags: ["v*"]
   pull_request:
 
@@ -40,7 +40,10 @@ jobs:
           python -m compileall -q .
           # pytest exits 5 when a package has no tests yet (the harness). Treat that as a
           # pass rather than fabricate a suite — the offline modules still compiled above.
-          python -m pytest -q; code=$?
+          # The `|| code=$?` keeps `bash -e` from aborting on pytest's non-zero exit before
+          # we can inspect it.
+          code=0
+          python -m pytest -q || code=$?
           if [ "$code" -eq 5 ]; then
             echo "::notice title=No tests::${{ matrix.package }} has no unit suite yet; compiled only."
             exit 0
@@ -74,7 +77,8 @@ jobs:
         # Strict-validate the durable spec contract (what's merged and authoritative). In-flight
         # changes are validated by the author pre-merge via /opsx — some legitimately carry no
         # spec delta (e.g. a harness that touches no specs), so `--all` is not the CI gate.
-        run: npx --yes openspec@1.6.0 validate --specs --strict --no-interactive
+        # The CLI (bin `openspec`) ships in the npm package @fission-ai/openspec.
+        run: npx --yes @fission-ai/openspec@1.6.0 validate --specs --strict --no-interactive
 
   render-image:
     # Verify the pinned Dockerfile still builds on every push/PR (buildx layer cache makes

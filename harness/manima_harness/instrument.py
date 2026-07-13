@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import subprocess
 import urllib.request
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Protocol, runtime_checkable
 
 from .contract import JobState, TimedCall

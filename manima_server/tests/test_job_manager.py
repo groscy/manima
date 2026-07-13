@@ -11,7 +11,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from manima_server.config import ServerConfig  # noqa: E402
-from manima_server.core.domain import Job, JobState, RenderMode, RenderOutcome  # noqa: E402
+from manima_server.core.domain import JobState, RenderMode, RenderOutcome  # noqa: E402
 from manima_server.core.job_manager import JobManager  # noqa: E402
 
 GOOD = "from manim import *\n\nclass S(Scene):\n    def construct(self):\n        self.add(Circle())\n"
