@@ -15,7 +15,8 @@ import re
 
 from ..version import MANIM_CE_VERSION
 
-_FENCE = re.compile(r"^```(?:python)?\s*\n(.*?)\n```\s*$", re.DOTALL)
+# First fenced code block, tolerating an unclosed fence (\Z = end of string).
+_CODE_BLOCK = re.compile(r"```(?:python)?[ \t]*\r?\n(.*?)(?:\r?\n```|\Z)", re.DOTALL)
 
 _SYSTEM = """\
 You write a single self-contained Manim Community Edition scene, targeting version {version}.
@@ -108,6 +109,12 @@ def _build_user_message(
 
 
 def _strip_fences(text: str) -> str:
+    """Extract the first fenced code block, tolerating prose around it and an unclosed
+    fence. A small model routinely explains its answer ("Here's the corrected code:")
+    despite being told to output only source, and sometimes truncates mid-block."""
+
     text = text.strip()
-    m = _FENCE.match(text)
-    return m.group(1).strip() if m else text
+    match = _CODE_BLOCK.search(text)
+    if match:
+        return match.group(1).strip()
+    return text
