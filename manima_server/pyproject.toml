@@ -1,0 +1,36 @@
+[project]
+name = "manima-server"
+version = "0.1.0"
+description = "MANIMA — local-first MCP server that renders (and optionally generates) Manim CE animations"
+requires-python = ">=3.12"
+dependencies = [
+    # MCP stdio server surface.
+    "mcp>=1.0",
+]
+
+[project.optional-dependencies]
+# The generate path. The core and render path never import these — a render-only
+# deployment installs none of them (invariant 6).
+generate = [
+    "openai>=1.0",                  # vLLM exposes an OpenAI-compatible endpoint
+    "qdrant-client[fastembed]>=1.7",  # grounding retrieval + local embeddings
+]
+# Escalation only — the deny-by-default hosted fallback. Separate so a sovereign
+# deployment need not install a hosted-model SDK at all.
+escalation = ["anthropic>=0.40"]
+# Offline test suite + the CI/lint toolchain. ruff lints; pip-tools produces the
+# reproducible lock (`make lock`). None of this is needed at runtime.
+dev = ["pytest>=8.0", "ruff>=0.6", "pip-tools>=7.0"]
+
+[project.scripts]
+manima-server = "manima_server.server:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["manima_server"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

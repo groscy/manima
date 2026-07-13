@@ -1,0 +1,13 @@
+# Runtime state — content-addressed artifacts and the job DB (WSL2 fs at runtime).
+*.db
+*.db-journal
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+build/
+dist/
+.pytest_cache/

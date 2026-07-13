@@ -1,0 +1,13 @@
+# Hadolint config for the render Dockerfile (CI lint job, task 6.2).
+#
+# The render image is deliberately a full, offline TeX Live + Manim environment built once
+# and pinned. Two default warnings are inapplicable to it and are ignored with rationale;
+# every other rule stays active.
+ignored:
+  # DL3008 — "pin versions in apt-get install". The image intentionally installs the
+  # distro's current texlive-full/cairo/ffmpeg; pinning every apt package of a full-TeX
+  # image is unmanageable and buys nothing here (the image itself is the pinned artifact).
+  - DL3008
+  # DL3013 — "pin versions in pip install". Manim IS pinned (manim==${MANIM_CE_VERSION},
+  # the single source of truth); pip itself is not, by design.
+  - DL3013

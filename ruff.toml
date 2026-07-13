@@ -1,0 +1,19 @@
+# Shared lint config for CI (`ruff check manima_server harness`) and `make lint`.
+#
+# Deliberately conservative: pyflakes (F — undefined names, unused imports) and the
+# error-class pycodestyle checks (E). Line length is not enforced (E501 off) — the
+# codebase wraps by hand and formatting is not what this lint is guarding. Import
+# ordering (I) is intentionally NOT selected so pre-existing files are not reddened
+# over cosmetics.
+target-version = "py312"
+line-length = 100
+
+[lint]
+select = ["E", "F"]
+ignore = ["E501"]
+
+# The offline tests insert sys.path before importing the package under test and already
+# carry `# noqa: E402`; keep the rule active elsewhere.
+[lint.per-file-ignores]
+"**/tests/**" = ["E402"]
+"**/scripts/**" = ["E402"]

@@ -1,0 +1,96 @@
+# Easy tier — mobjects, plotting, basic LaTeX (task 1.1).
+#
+# "expected" states what a correct scene must contain (task 1.4): the checks a human
+# applies to the rendered artifact when deciding first-pass / semantic failure. The
+# probe render cannot see these — a scene that draws the wrong function still runs.
+#
+# manimgl_risk marks prompts whose obvious solution touches API that drifted from
+# ManimGL to Manim CE, and is therefore where an 8B model most often reaches for the
+# statistically likely (wrong) answer.
+
+- id: easy-01
+  prompt: >
+    Plot the function y = sin(x) over the interval from -2*pi to 2*pi on a set of
+    axes with visible tick marks.
+  expected:
+    - Uses an Axes mobject with an x-range covering roughly -2*pi to 2*pi
+    - Draws the sine curve, not a straight line or a different trig function
+    - The curve completes two full periods across the range
+  manimgl_risk: high
+  notes: >
+    Graphing is a known drift point. CE uses axes.plot(...); ManimGL forms lean on
+    get_graph / FunctionGraph, which a small model frequently emits.
+
+- id: easy-02
+  prompt: Render the quadratic formula as a centered mathematical equation.
+  expected:
+    - A single MathTex/Tex equation reading x = (-b +/- sqrt(b^2 - 4ac)) / 2a
+    - LaTeX compiles (fraction, square root, plus-minus all present)
+  manimgl_risk: low
+
+- id: easy-03
+  prompt: >
+    Draw a red circle, a blue square, and a green triangle arranged in a horizontal
+    row with even spacing.
+  expected:
+    - Three distinct mobjects: Circle, Square, Triangle
+    - Colors are red, blue, green respectively
+    - They are laid out horizontally without overlapping (e.g. arrange RIGHT)
+  manimgl_risk: low
+
+- id: easy-04
+  prompt: Write the text "Hello, Manim" on screen and fade it in.
+  expected:
+    - A Text (or Tex) mobject with the exact string "Hello, Manim"
+    - The reveal animation is a fade-in, not a write or a cut
+  manimgl_risk: low
+
+- id: easy-05
+  prompt: >
+    Plot y = x^2 on labeled axes, with the x-axis labelled "x" and the y-axis
+    labelled "y".
+  expected:
+    - Axes with a parabola opening upward
+    - Both axis labels present and correctly placed
+  manimgl_risk: high
+  notes: Axis labelling API (get_axis_labels) also drifted between engines.
+
+- id: easy-06
+  prompt: Display the Greek letters alpha, beta, and gamma as a single math expression.
+  expected:
+    - A MathTex containing \alpha, \beta, \gamma
+    - Renders three distinct Greek glyphs, not the literal words
+  manimgl_risk: low
+
+- id: easy-07
+  prompt: Draw a number line running from 0 to 10 with labelled integer tick marks.
+  expected:
+    - A NumberLine from 0 to 10
+    - Integer ticks are labelled
+  manimgl_risk: medium
+  notes: NumberLine constructor kwargs (include_numbers, x_range) differ across versions.
+
+- id: easy-08
+  prompt: >
+    Draw a right triangle and label its three sides with the letters a, b, and c,
+    with c on the hypotenuse.
+  expected:
+    - A triangle with one clearly right angle
+    - Three side labels a, b, c positioned next to the correct edges
+    - c labels the hypotenuse
+  manimgl_risk: low
+
+- id: easy-09
+  prompt: Animate a dot moving in a straight line from the left edge to the right edge.
+  expected:
+    - A single Dot mobject
+    - It translates left-to-right across the frame (e.g. via .animate or MoveAlongPath)
+    - Motion is horizontal and roughly spans the frame width
+  manimgl_risk: low
+
+- id: easy-10
+  prompt: Render Euler's identity, e^(i*pi) + 1 = 0, as a centered equation.
+  expected:
+    - A MathTex reading e^{i\pi} + 1 = 0
+    - Exponent and Greek pi render correctly
+  manimgl_risk: low
