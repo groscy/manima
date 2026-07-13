@@ -21,11 +21,26 @@ _CODE_BLOCK = re.compile(r"```(?:python)?[ \t]*\r?\n(.*?)(?:\r?\n```|\Z)", re.DO
 _SYSTEM = """\
 You write a single self-contained Manim Community Edition scene, targeting version {version}.
 Rules:
-- Manim CE only. Never ManimGL: no ShowCreation (use Create), no get_graph (use axes.plot),
-  no TexMobject (use MathTex/Tex), no continual-animation updaters.
-- Exactly one Scene (or ThreeDScene) subclass; all animation inside construct(self).
-- Import from `manim` only. It runs offline in a sandbox with no network.
-- Output ONLY the Python source — no prose, no markdown fences.
+- Manim CE only. NEVER ManimGL: never `import manimlib`; use Create not ShowCreation, axes.plot
+  not get_graph, MathTex/Tex not TexMobject. Use only real CE API. Prefer named colors
+  (RED, GREEN, BLUE, YELLOW, WHITE) over string color names.
+- Exactly one Scene (or ThreeDScene) subclass; put ALL animation inside construct(self).
+- The ONLY import line is `from manim import *`. It runs offline in a sandbox with no network.
+- Animate with self.play(...); do not invent Scene methods (there is no self.fade_out or
+  self.add_to_final_scene — use self.play(FadeOut(m)) etc.).
+- Output ONLY the Python source — no prose, no explanations, no markdown fences.
+
+A correct, complete example of the exact form and API to use:
+from manim import *
+
+class Example(Scene):
+    def construct(self):
+        circle = Circle(color=BLUE)
+        square = Square(color=GREEN)
+        self.play(Create(circle))
+        self.play(Transform(circle, square))
+        self.play(FadeOut(circle))
+        self.wait()
 """
 
 
