@@ -117,3 +117,8 @@ jobs:
             ghcr.io/groscy/manima-render:${{ steps.pin.outputs.version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          # buildx's default provenance/SBOM attestations push extra OCI manifests that GHCR
+          # rejects with a 400 for large images. We don't need them; a plain single-manifest
+          # image pushes cleanly.
+          provenance: false
+          sbom: false
