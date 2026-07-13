@@ -26,7 +26,11 @@ services:
         # exports MANIM_CE_VERSION from it. The default here is only a raw-compose fallback
         # and must be kept in step with version.py if used (design D6).
         MANIM_CE_VERSION: ${MANIM_CE_VERSION:-0.18.1}
-    image: manima-render:pinned
+    # Local build tags this name. To deploy from the PUBLISHED image instead of building,
+    # set MANIMA_RENDER_IMAGE=ghcr.io/groscy/manima-render:pinned and run
+    # `docker compose --profile image pull render-image` (or `make pull`) — the same var the
+    # server reads, so the sandbox spawns containers from exactly what was pulled.
+    image: ${MANIMA_RENDER_IMAGE:-manima-render:pinned}
     # Build-only: never started by a bare `docker compose up`.
     profiles: ["image"]
     # If ever run directly, just prints the Manim version rather than doing work.

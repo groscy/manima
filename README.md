@@ -29,6 +29,16 @@ server:
 MANIMA_RENDER_ONLY=1 python -m manima_server.server   # cwd: manima_server/
 ```
 
+**Prefer not to build the ~9-minute TeX image locally?** Pull the published one instead:
+
+```bash
+make deploy-pull      # docker compose pulls ghcr.io/groscy/manima-render:pinned, then smokes it
+```
+
+`deploy-pull` sets `MANIMA_RENDER_IMAGE` to the GHCR ref — the same variable the server
+reads — so the sandbox spawns containers from exactly what was pulled. (The image is
+published on release tags; it must be public, or you must `docker login ghcr.io`, to pull it.)
+
 `make help` lists every target. All configuration lives in one file, `.env`
 (copied from [`.env.example`](.env.example)); the real `.env` is never committed.
 

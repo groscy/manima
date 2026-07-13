@@ -81,6 +81,11 @@ class ServerConfig:
             sandbox = _replace(sandbox, container_cli=os.environ["MANIMA_CONTAINER_CLI"])
         if os.environ.get("MANIMA_NO_RESOURCE_LIMITS") == "1":
             sandbox = _replace(sandbox, enforce_resource_limits=False)
+        # Which image every render container is spawned from. Defaults to the locally-built
+        # `manima-render:pinned`; point it at the published image (e.g.
+        # ghcr.io/groscy/manima-render:pinned) to run from a pull instead of a local build.
+        if os.environ.get("MANIMA_RENDER_IMAGE"):
+            sandbox = _replace(sandbox, image=os.environ["MANIMA_RENDER_IMAGE"])
         return _replace(
             cfg,
             store_root=Path(store) if store else cfg.store_root,
