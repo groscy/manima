@@ -1,0 +1,12 @@
+# Load-run output — raw sources, tracebacks, metrics, reports.
+runs/
+report*.md
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+build/
+dist/

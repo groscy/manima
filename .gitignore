@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+build/
+dist/
+
+# Claude Code local (personal) settings — not shared
+.claude/settings.local.json
+
+# Runtime output (harness runs, server artifact store / job DB)
+runs/
+report*.md
+*.db
+*.db-journal
+
+# OS
+.DS_Store
+Thumbs.db

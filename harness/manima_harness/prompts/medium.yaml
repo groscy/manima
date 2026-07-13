@@ -1,0 +1,105 @@
+# Medium tier — transforms, updaters, multi-step choreography (task 1.2).
+#
+# These lean harder on animation semantics, so several carry high manimgl_risk:
+# creation/transform animations and updaters are exactly where ManimGL naming
+# (ShowCreation, CounterclockwiseTransform, continual updaters) contaminates an 8B
+# model's output.
+
+- id: medium-01
+  prompt: Animate a square being transformed into a circle.
+  expected:
+    - Starts as a Square, ends as a Circle
+    - Uses a Transform-family animation (the shape morphs, not a cut/replace)
+  manimgl_risk: high
+  notes: >
+    "Transform into" reliably elicits ManimGL's ReplacementTransform/ShowCreation
+    idioms; CE creation animation is Create, not ShowCreation.
+
+- id: medium-02
+  prompt: >
+    Draw a vector rotating about the origin, with a dot that stays pinned to the tip
+    of the vector as it turns.
+  expected:
+    - An Arrow/Vector rotating around the origin
+    - A Dot attached via an updater so it tracks the tip every frame
+    - The dot does not lag or detach from the tip
+  manimgl_risk: high
+  notes: Updater API (add_updater / always_redraw) is a frequent drift/confusion point.
+
+- id: medium-03
+  prompt: >
+    Show a Riemann-sum approximation of the area under y = x^2 on [0, 2], starting
+    with coarse rectangles and refining to finer rectangles.
+  expected:
+    - Rectangles filling the region under the parabola on [0, 2]
+    - At least two refinement steps, rectangles getting narrower
+    - The approximation visibly hugs the curve more closely as it refines
+  manimgl_risk: high
+  notes: get_riemann_rectangles lives on the axes/coordinate system and has drifted.
+
+- id: medium-04
+  prompt: Morph the word "cat" into the word "dog", matching letters where possible.
+  expected:
+    - Text starts as "cat" and ends as "dog"
+    - Uses a matching transform (TransformMatchingShapes/TransformMatchingTex) rather
+      than a hard cut
+  manimgl_risk: medium
+
+- id: medium-05
+  prompt: >
+    Plot a curve and move a dot along it while a short line segment stays tangent to
+    the curve at the dot's position.
+  expected:
+    - A plotted curve on axes
+    - A dot travelling along the curve
+    - A tangent line updated each frame to match the local slope at the dot
+  manimgl_risk: high
+  notes: Combines graphing drift with updater drift — a hard double for a small model.
+
+- id: medium-06
+  prompt: >
+    Show three equations appearing one after another in the same position, each
+    replacing the previous one, with matching terms morphing between them.
+  expected:
+    - Exactly three equations shown in sequence, same screen position
+    - Transitions use TransformMatchingTex (shared terms move, not fade+rewrite)
+  manimgl_risk: medium
+
+- id: medium-07
+  prompt: >
+    Animate a simple pendulum swinging back and forth, using an updater driven by a
+    tracked angle value.
+  expected:
+    - A rod + bob pivoting about a fixed point
+    - A ValueTracker (or equivalent) drives the angle
+    - An updater keeps the bob on the arc; motion oscillates
+  manimgl_risk: high
+  notes: ValueTracker + updater composition; ManimGL's continual-animation model differs.
+
+- id: medium-08
+  prompt: >
+    Grow a small tree of circles from a single root node, revealing it one level at a
+    time.
+  expected:
+    - A root circle, then children, then grandchildren
+    - Nodes connected by lines/edges
+    - Levels appear in sequence (staged animation), not all at once
+  manimgl_risk: low
+
+- id: medium-09
+  prompt: Animate a point tracing out a Lissajous curve.
+  expected:
+    - A parametric curve with distinct x and y frequencies (a genuine Lissajous figure)
+    - A point drawing/tracing the path over time
+  manimgl_risk: medium
+  notes: ParametricFunction constructor signature changed across versions.
+
+- id: medium-10
+  prompt: >
+    Draw a bar chart of four values where the bars grow from zero to their heights one
+    after another.
+  expected:
+    - A BarChart (or equivalent) with four bars
+    - Bars animate growing from the baseline
+    - Growth is staggered/sequential, not simultaneous
+  manimgl_risk: medium
