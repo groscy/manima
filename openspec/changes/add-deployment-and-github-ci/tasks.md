@@ -97,10 +97,10 @@ Docker, no ruff, no pip-tools, no GPU.
 - [x] 9.1 Confirm with the user that `github.com/groscy/manima` exists, is empty, and
       that they authorize publishing — **user authorized publishing to main.** Repo state:
       does **not exist yet** on GitHub, so the push is held until the user creates it.
-- [ ] 9.2 On explicit confirmation only: add `origin =
-      https://github.com/groscy/manima.git` and push `main` — **half done:** work committed
-      to `main` (0ce04de) and `origin` configured; the **push is held** because the remote
-      repo does not exist yet. One command away: `git push -u origin main` once it exists.
+- [x] 9.2 On explicit confirmation only: add `origin =
+      https://github.com/groscy/manima.git` and push `main` — **done:** user created the
+      repo and authorized the push; `git push -u origin main` landed, `main` tracks
+      `origin/main`.
 - [x] 9.3 Verify no workflow pushes project source automatically — confirmed: `git push`
       appears nowhere in `.github/`; only the tag-gated image publish sends an artifact
       outward
