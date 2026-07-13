@@ -17,6 +17,9 @@ report*.md
 *.db
 *.db-journal
 
+# Local demo scenes / preview + real-render artifacts — not shared
+examples/
+
 # OS
 .DS_Store
 Thumbs.db
