@@ -21,6 +21,7 @@ without a reachable Docker daemon, which is exactly what ``preflight`` guards.
 from __future__ import annotations
 
 import asyncio
+import os
 import shutil
 import tempfile
 from pathlib import Path
@@ -40,32 +41,33 @@ class DockerSandbox:
     def __init__(self, limits: SandboxLimits, *, seccomp_profile: str | None = None) -> None:
         self._limits = limits
         self._seccomp = seccomp_profile
+        self._cli = limits.container_cli  # "docker" or "podman"
 
     def preflight(self) -> None:
-        """Fail loud if the Docker daemon is unreachable or the image is missing (2.5).
+        """Fail loud if the container engine is unreachable or the image is missing (2.5).
 
         Synchronous and called at startup, before the server accepts a single call. There
         is deliberately no fallback: if this raises, the server must not start."""
 
-        if shutil.which("docker") is None:
-            raise SandboxUnavailable("docker CLI not found on PATH")
+        if shutil.which(self._cli) is None:
+            raise SandboxUnavailable(f"{self._cli} CLI not found on PATH")
         try:
-            proc = _run_sync(["docker", "info", "--format", "{{.ServerVersion}}"])
+            proc = _run_sync([self._cli, "info"])
         except OSError as exc:  # pragma: no cover - environment dependent
-            raise SandboxUnavailable(f"cannot exec docker: {exc}") from exc
+            raise SandboxUnavailable(f"cannot exec {self._cli}: {exc}") from exc
         if proc.returncode != 0:
             raise SandboxUnavailable(
-                f"docker daemon unreachable: {proc.stderr.strip() or 'docker info failed'}"
+                f"{self._cli} not operational: {(proc.stderr or '').strip()[:200] or 'info failed'}"
             )
-        img = _run_sync(["docker", "image", "inspect", self._limits.image])
+        img = _run_sync([self._cli, "image", "inspect", self._limits.image])
         if img.returncode != 0:
             raise SandboxUnavailable(
-                f"render image '{self._limits.image}' not present; build docker/Dockerfile"
+                f"render image '{self._limits.image}' not present; build/pull it first"
             )
 
     async def kill(self, name: str) -> None:
         proc = await asyncio.create_subprocess_exec(
-            "docker", "kill", name,
+            self._cli, "kill", name,
             stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL,
         )
         await proc.wait()  # already-gone container -> non-zero, which is fine
@@ -114,11 +116,17 @@ class DockerSandbox:
             stderr = stderr_b.decode("utf-8", "replace")
             if proc.returncode == 0:
                 artifact = _find_output(work, mode)
+                if artifact is None:
+                    return RenderOutcome(
+                        ok=False, mode=mode, duration_s=duration,
+                        traceback="render exited 0 but produced no artifact",
+                    )
+                # The `finally` below deletes `work` (and the artifact in it) as this
+                # returns. A full render's artifact must outlive that so the store can copy
+                # it, so persist it to a stable temp first; a probe only needs its verdict.
+                path = _persist(artifact) if mode is RenderMode.FULL else None
                 return RenderOutcome(
-                    ok=artifact is not None, mode=mode,
-                    artifact_path=str(artifact) if artifact else None,
-                    duration_s=duration,
-                    traceback=None if artifact else "render exited 0 but produced no artifact",
+                    ok=True, mode=mode, artifact_path=path, duration_s=duration,
                 )
             # Non-zero: exit 137 without a timeout is the OOM-kill signature (memory cap).
             oom = proc.returncode == 137
@@ -137,17 +145,28 @@ class DockerSandbox:
         quality: str,
         scene_name: str | None,
     ) -> list[str]:
+        podman = self._cli == "podman"
         cmd = [
-            "docker", "run", "--rm", "--name", container,
+            self._cli, "run", "--rm", "--name", container,
             "--network=none",
             "--cap-drop=ALL",
             "--security-opt", "no-new-privileges",
             "--read-only",
-            "--user", "1000:1000",
-            "--memory", self._limits.memory,
-            "--memory-swap", self._limits.memory,  # == memory => swap disabled
-            "--cpus", self._limits.cpus,
-            "--pids-limit", "256",
+        ]
+        if podman and self._limits.rootless_userns_keepid:
+            # Rootless podman: map the container user to the host user so files written to
+            # the /work bind mount are owned by the host and readable back.
+            cmd += ["--userns=keep-id"]
+        else:
+            cmd += ["--user", "1000:1000"]
+        if self._limits.enforce_resource_limits:
+            cmd += [
+                "--memory", self._limits.memory,
+                "--memory-swap", self._limits.memory,  # == memory => swap disabled
+                "--cpus", self._limits.cpus,
+                "--pids-limit", "256",
+            ]
+        cmd += [
             # Writable scratch on a read-only rootfs.
             "--tmpfs", "/tmp:rw,nosuid,nodev",
             "-v", f"{work}:/work",
@@ -155,12 +174,14 @@ class DockerSandbox:
             "-e", "HOME=/work",
             "-e", "TEXMFVAR=/tmp/texmf-var",
             "-e", "XDG_CACHE_HOME=/work/.cache",
+            # Invoke manim regardless of the image's own entrypoint (image-agnostic).
+            "--entrypoint", "manim",
         ]
         if self._seccomp:
             cmd += ["--security-opt", f"seccomp={self._seccomp}"]
         cmd.append(self._limits.image)
 
-        # Manim argument vector (image ENTRYPOINT is `manim`).
+        # Manim argument vector.
         cmd += ["--media_dir", "/work/media", "--disable_caching"]
         if mode is RenderMode.PROBE:
             cmd += ["-s", "-r", _PROBE_RES]  # save last frame at 240p
@@ -170,6 +191,19 @@ class DockerSandbox:
         if scene_name:
             cmd.append(scene_name)
         return cmd
+
+
+def _persist(artifact: Path) -> str:
+    """Copy a rendered artifact to a stable temp path that outlives the work dir.
+
+    The artifact store copies this into the content-addressed store; this intermediate
+    temp is a small, short-lived file in the system temp dir.
+    """
+
+    fd, tmp = tempfile.mkstemp(prefix="manima-art-", suffix=artifact.suffix)
+    os.close(fd)
+    shutil.copyfile(artifact, tmp)
+    return tmp
 
 
 def _find_output(work: Path, mode: RenderMode) -> Path | None:

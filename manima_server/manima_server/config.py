@@ -23,6 +23,15 @@ class SandboxLimits:
     probe_timeout_s: float = 30.0
     full_timeout_s: float = 300.0
     image: str = "manima-render:pinned"  # built from docker/Dockerfile
+    # Container CLI: "docker" or "podman". Podman is daemonless and rootless-by-default,
+    # which matches the project's rootless-container design (project.md, ADR-001).
+    container_cli: str = "docker"
+    # Rootless podman: map the container user to the host user so bind-mounted render
+    # output is owned by (and readable to) the host. Ignored for docker.
+    rootless_userns_keepid: bool = True
+    # Apply --memory/--cpus/--pids-limit. Rootless podman needs cgroup-v2 delegation for
+    # these; where that isn't set up, disable to let renders run without hard caps.
+    enforce_resource_limits: bool = True
 
 
 @dataclass(frozen=True)
@@ -67,11 +76,17 @@ class ServerConfig:
             gen = _replace(gen, vllm_base_url=os.environ["MANIMA_VLLM_URL"])
         if os.environ.get("MANIMA_ALLOW_ESCALATION") == "1":
             gen = _replace(gen, allow_escalation=True)
+        sandbox = cfg.sandbox
+        if os.environ.get("MANIMA_CONTAINER_CLI"):
+            sandbox = _replace(sandbox, container_cli=os.environ["MANIMA_CONTAINER_CLI"])
+        if os.environ.get("MANIMA_NO_RESOURCE_LIMITS") == "1":
+            sandbox = _replace(sandbox, enforce_resource_limits=False)
         return _replace(
             cfg,
             store_root=Path(store) if store else cfg.store_root,
             job_db_path=Path(jobdb) if jobdb else cfg.job_db_path,
             generate=gen,
+            sandbox=sandbox,
         )
 
 
