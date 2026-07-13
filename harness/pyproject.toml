@@ -14,6 +14,9 @@ dependencies = [
 # Control condition only. The frontier adapter talks to a hosted model; the rest
 # of the harness never imports it, so a sovereign run needs none of this.
 frontier = ["anthropic>=0.40"]
+# CI/lint toolchain (mirrors manima_server's dev extra). The harness has no unit
+# suite yet; CI compiles it and runs pytest, tolerating an empty collection.
+dev = ["pytest>=8.0", "ruff>=0.6", "pip-tools>=7.0"]
 
 [project.scripts]
 manima-harness = "manima_harness.__main__:main"

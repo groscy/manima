@@ -4,6 +4,11 @@
 # Run inside WSL2. Order matters: the render image and Docker come first (the render path
 # depends only on them), then the generate-path services. render_animation is usable after
 # step 2 alone; generate_animation needs steps 3-4 as well.
+#
+# NOTE: For a render-only deployment prefer the one-command entrypoint at the repo root —
+#   `make deploy`  (build image → verify Docker → smoke a render), then `make generate-up`
+# to opt into the generate path. This script remains the annotated, step-by-step reference
+# and is what `make` orchestrates under the hood.
 set -euo pipefail
 
 MANIM_CE_VERSION="${MANIM_CE_VERSION:-0.18.1}"

@@ -18,7 +18,9 @@ generate = [
 # Escalation only — the deny-by-default hosted fallback. Separate so a sovereign
 # deployment need not install a hosted-model SDK at all.
 escalation = ["anthropic>=0.40"]
-dev = ["pytest>=8.0"]
+# Offline test suite + the CI/lint toolchain. ruff lints; pip-tools produces the
+# reproducible lock (`make lock`). None of this is needed at runtime.
+dev = ["pytest>=8.0", "ruff>=0.6", "pip-tools>=7.0"]
 
 [project.scripts]
 manima-server = "manima_server.server:main"

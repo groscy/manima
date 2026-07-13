@@ -8,6 +8,9 @@ venv/
 build/
 dist/
 
+# Real deployment config — copied from .env.example, may hold secrets. Never commit.
+.env
+
 # Claude Code local (personal) settings — not shared
 .claude/settings.local.json
 

@@ -72,12 +72,31 @@ work on a background task (specs/jobs).
 
 ## Bring-up
 
-`scripts/bringup.sh` runs the ordered sequence (design Migration Plan): build image →
-verify Docker → start vLLM → build corpus/Qdrant → start server. The render path is live
-after the Docker step; the generate path needs vLLM + Qdrant.
+For a render-only deployment, use the one-command entrypoint at the repo root:
+
+```bash
+make deploy        # build the pinned image → verify Docker → smoke-render a scene
+```
+
+`make deploy` succeeds only if a trivial scene actually rendered (`scripts/smoke_render.py`,
+invariant 3), then prints the launch line your MCP client uses. Opt into the generate path
+with `make generate-up` (starts Qdrant; vLLM stays external). See the
+[root README](../README.md) for both deployment shapes and the Docker-socket trade-off.
+
+Under the hood, `scripts/bringup.sh` is the annotated step-by-step sequence (design
+Migration Plan): build image → verify Docker → start vLLM → build corpus/Qdrant → start
+server. The render path is live after the Docker step; the generate path needs vLLM + Qdrant.
 
 Set `MANIMA_RENDER_ONLY=1` for a sovereign render-only deployment that imports no
 generate-path dependency at all.
+
+## CI
+
+GitHub Actions ([`.github/workflows/ci.yml`](../.github/workflows/ci.yml)) runs the offline
+suite, `ruff` + `hadolint`, `openspec validate --all --strict`, and a render-image build
+check (published to GHCR only on release tags) — all GPU-free. The generate path's live
+behaviour (Apertus/vLLM, Qdrant, GPU renders) is **not** run in CI and is not faked green;
+it is verified on real hardware. `pip install -e ".[dev]"` gets the test + lint toolchain.
 
 ## Non-negotiables (enforced structurally, per `openspec/project.md`)
 

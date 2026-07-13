@@ -28,9 +28,15 @@ in `manima_harness/contract.py`.
 ```bash
 pip install -e .              # core: mcp + pyyaml
 pip install -e ".[frontier]"  # + anthropic, for the control condition only
+pip install -e ".[dev]"       # + ruff/pytest/pip-tools, the CI/lint toolchain
 ```
 
 `prompts` and `report` need only `pyyaml`; `mcp` is required only for `run`/`control`.
+
+CI ([`.github/workflows/ci.yml`](../.github/workflows/ci.yml)) compiles this package and
+runs `ruff` on every push/PR. There is no unit suite yet, so CI treats an empty `pytest`
+collection as a pass rather than fabricate one — the offline `prompts`/`report` paths are
+exercised by hand (see below) until a live MANIMA makes an end-to-end suite runnable.
 
 ## Commands
 
