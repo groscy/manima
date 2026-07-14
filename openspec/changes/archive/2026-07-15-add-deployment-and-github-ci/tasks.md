@@ -89,14 +89,15 @@ bootstrapped pip-tools. What still needs a **Docker daemon** (3.5 render half) o
       `version.py`; builds on push/PR, does not push
 - [x] 6.5 Declare the generate/GPU surface as out of CI scope — not faked green — in
       both the workflow header and the READMEs
-- [ ] 6.6 Confirm the pipeline goes green on a trial PR and red when a test is broken
-      — **green half CONFIRMED live; red half deliberately not run.** Post-publication the
-      `CI` workflow has gone green on `master` pushes (e.g. run 29291875266,
-      `Document deploy-pull…`, all jobs success). The "red when a test is broken" half is
-      structurally guaranteed by the `test` job (`python -m pytest … || code=$?` then
-      `exit "$code"` for any non-5 code) but is left unobserved **by choice** — a
-      deliberately-broken PR would put a red commit on the public repo, and the user opted
-      to skip that outward action rather than fake it green.
+- [x] 6.6 Confirm the pipeline goes green on a trial PR and red when a test is broken
+      — **green CONFIRMED live; red demonstration explicitly waived.** The `CI` workflow
+      has gone green on `master` pushes repeatedly, most recently the full 5-job run on
+      commit `4374962` (test ×2, lint, spec-validate, render-image all success). The
+      "red when a test is broken" half is structurally guaranteed by the `test` job
+      (`python -m pytest … || code=$?` then `exit "$code"` for any non-5 code); the user
+      decided a deliberately-broken PR on the public repo is not needed, so this half is
+      closed as waived rather than observed — not faked green (the mechanism is inspectable
+      in `.github/workflows/ci.yml`).
 
 ## 7. Gated render-image publication (ci-pipeline spec)
 
