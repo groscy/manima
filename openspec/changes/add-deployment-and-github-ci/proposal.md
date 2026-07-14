@@ -75,3 +75,5 @@ pipeline in front of it, without compromising a single non-negotiable.
 - **Non-negotiables:** all six hold. The sandbox is not weakened; if the deployment
   containerizes the server itself, the Docker-socket trade-off is documented honestly
   rather than papered over (see design.md).
+
+## Depends On
