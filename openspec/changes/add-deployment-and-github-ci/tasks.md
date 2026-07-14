@@ -5,10 +5,13 @@ publication to the public remote is deliberately last and human-gated (design D8
 Nothing here touches `core/`, `adapters/`, `server.py`, or the Dockerfile's contents.
 
 **Status legend.** `[x]` = implemented and inspectable in this environment. Items that
-need a **Docker host**, **network + pip-tools**, or a **live CI/PR run** to *observe* are
-authored but marked `[ ]` with a note — the same honesty bar the repo already applies
-(no faking a green a GPU-less/Dockerless box cannot produce). Windows dev box here: no
-Docker, no ruff, no pip-tools, no GPU.
+need a **Docker host** or a **live CI/PR run** to *observe* are authored but marked `[ ]`
+with a note — the same honesty bar the repo already applies (no faking a green a
+GPU-less/Dockerless box cannot produce). The Windows dev box has no Docker/ruff/GPU; the
+dependency locks (2.2) and the clean-install offline-suite verification (2.3) were
+produced in **WSL Ubuntu (Linux, Python 3.12.3 — the CI runner's platform)** via a
+bootstrapped pip-tools. What still needs a **Docker daemon** (3.5 render half) or an
+**outward push** (6.6 red half) remains `[ ]`.
 
 ## 1. Configuration surface
 
@@ -23,12 +26,15 @@ Docker, no ruff, no pip-tools, no GPU.
 
 - [x] 2.1 Add `ruff` and `pip-tools` to the `[dev]` extra of both
       `manima_server/pyproject.toml` and `harness/pyproject.toml` (harness gained a `[dev]`)
-- [ ] 2.2 Generate a locked constraints file per package from `pyproject.toml`
-      — **mechanism in place** (`make lock` runs `pip-compile --extra dev`); the actual
-      resolution needs pip-tools + network, absent here, so the lock files are not yet
-      committed. Run `make lock` on a connected box to produce them.
-- [ ] 2.3 Confirm a clean `pip install` against the lock reproduces a passing offline
-      run — blocked on 2.2 (no lock to install against here)
+- [x] 2.2 Generate a locked constraints file per package from `pyproject.toml`
+      — generated on **Linux + Python 3.12.3** (matching the CI runner, via pip-tools
+      7.5.3) so the pins carry no Windows-only leakage; committed at
+      `manima_server/requirements.lock` and `harness/requirements.lock`. Reproduce with
+      `make lock` on any connected Linux box.
+- [x] 2.3 Confirm a clean `pip install` against the lock reproduces a passing offline
+      run — fresh venv, `pip install -r requirements.lock` then `-e . --no-deps`:
+      `manima_server` offline suite is **28 passed**; `harness` installs and compiles
+      clean (empty suite tolerated, as CI does).
 
 ## 3. Compose + one-command deployment (design D1–D2)
 
@@ -39,19 +45,28 @@ Docker, no ruff, no pip-tools, no GPU.
       print the exact `python -m manima_server.server` launch line → run the smoke test
 - [x] 3.4 Default the entrypoint to render-only (`MANIMA_RENDER_ONLY=1`); generate is
       opt-in only (`make generate-up`)
-- [ ] 3.5 Verify render-only stands up on a Docker host with no GPU/vLLM/Qdrant and
-      imports no generate-path dependency — **run-blocked: needs a Docker host.** The
-      wiring guarantees it (server gates the generate imports on `MANIMA_RENDER_ONLY`; the
-      Makefile/smoke force it to `1`); `make deploy` confirms it on real infra.
+- [x] 3.5 Verify render-only stands up on a Docker host with no GPU/vLLM/Qdrant and
+      imports no generate-path dependency — **VERIFIED live, both halves.** (a) Import
+      isolation: in a base-only venv (`pip install -e manima_server`, no extras)
+      `openai`/`qdrant_client`/`anthropic`/`fastembed` are all absent, and
+      `MANIMA_RENDER_ONLY=1 python -c "import manima_server.server"` loads the server with
+      **zero** generate modules in `sys.modules` and `_generate_configured() is False`.
+      (b) Real render: built `manima-render:pinned` (5.29 GB, Manim CE 0.18.1 + full TeX
+      Live) and ran `smoke_render.py` under rootless **podman** (`MANIMA_CONTAINER_CLI=podman`,
+      cgroup-v2 limits enforced) with no GPU/vLLM/Qdrant — job SUCCEEDED with a retrievable
+      4344-byte MP4 artifact in the content-addressed store.
 
 ## 4. Deployment smoke test (deployment spec, invariant 3)
 
 - [x] 4.1 Smoke test submitting a trivial scene via `render_animation`, polling to
       terminal, asserting `SUCCEEDED` + a retrievable `job_result` artifact
-      — `manima_server/scripts/smoke_render.py` (syntax-checked; live run is Docker-gated)
+      — `manima_server/scripts/smoke_render.py`, now **run live** (rootless podman): the
+      Circle scene reached SUCCEEDED with a retrievable 4344-byte MP4, exit 0.
 - [x] 4.2 Fail loudly (non-zero) when the sandbox is misconfigured — the script's
-      top-level `except` turns a server that won't start (Docker unreachable →
-      `SandboxUnavailable` at preflight → failed stdio init) into exit 1
+      top-level `except` turns a server that won't start (container CLI unreachable →
+      `SandboxUnavailable` at preflight → failed stdio init) into exit 1. **Confirmed
+      live:** pointing it at an absent CLI (`MANIMA_CONTAINER_CLI=docker`, not installed)
+      printed `SMOKE FAIL` and exited 1 without reporting healthy.
 
 ## 5. Document the containment trade-off (design D4, deployment spec)
 
@@ -75,8 +90,13 @@ Docker, no ruff, no pip-tools, no GPU.
 - [x] 6.5 Declare the generate/GPU surface as out of CI scope — not faked green — in
       both the workflow header and the READMEs
 - [ ] 6.6 Confirm the pipeline goes green on a trial PR and red when a test is broken
-      — **needs a live CI run** (pushed to GitHub); cannot be observed from this box.
-      Ties into task 9 (publication) — the first PR after publish is the confirmation.
+      — **green half CONFIRMED live; red half deliberately not run.** Post-publication the
+      `CI` workflow has gone green on `master` pushes (e.g. run 29291875266,
+      `Document deploy-pull…`, all jobs success). The "red when a test is broken" half is
+      structurally guaranteed by the `test` job (`python -m pytest … || code=$?` then
+      `exit "$code"` for any non-5 code) but is left unobserved **by choice** — a
+      deliberately-broken PR would put a red commit on the public repo, and the user opted
+      to skip that outward action rather than fake it green.
 
 ## 7. Gated render-image publication (ci-pipeline spec)
 
