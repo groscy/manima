@@ -16,14 +16,44 @@ parts compile and are wired but are unrunnable until §0 lands. Wire-detail
 assumptions the real server will confirm are marked `ASSUMPTION` in
 `harness/manima_harness/contract.py`.
 
+**Update (2026-07-23) — §0 reconciled.** MANIMA now exists. `manima_server/` was built
+(the archived `build-manima-server` change plus follow-ups), both the render and generate
+paths were runtime-verified in prior sessions, the render sandbox runs under rootless
+Podman on WSL2, and a first Apertus 8B generate pass produced a real failure taxonomy.
+The §0 prerequisites below are therefore checked. **Re-verified live end-to-end on
+2026-07-23:** the whole stack was brought up (WSL2 → rootless Podman → vLLM serving
+Apertus 8B int4 on `:8006` → Qdrant with the 392-snippet `manim-ce` corpus → the MCP
+server); a render-only smoke SUCCEEDED; and the harness drove the generate path to a
+terminal result — soak, one easy prompt: `generate_animation` enqueued in 1.885 s (under
+the 2 s async contract, zero violations), the job ran QUEUED→GENERATING→RENDERING→FAILED,
+and the recorded attempt failed with `NameError: name 'pi' is not defined` (wrong-API),
+captured with source + traceback and rolled into the §5 analysis report. **Scaled up 2026-07-23:**
+the full 30-prompt graded suite ran via soak (PIECEWISE-cudagraph vLLM ~33–46 tok/s, `--nvidia-smi`
++ `--vllm-metrics` probes) — first-pass/post-repair by tier: **easy 20%/30%, medium 10%/10%, hard
+0%/0%**; VRAM high-water 15875/16384 MB (3% headroom); the report's 6.3 ("cut repair budget — a3
+yields 0%") and 6.4 ("19 calls breached the 2 s contract") advisories fire on real evidence. Still
+open: the frontier control *run* (3.3), the other profiles (burst/repair-heavy/mixed), and *acting*
+on §6 (human calls). Serving: bnb-int4 is ~3 tok/s under `--enforce-eager` vs ~56–65 tok/s with
+`cudagraph_mode=PIECEWISE` (default FULL graphs wedge on the real workload); the generator's
+hardcoded `max_tokens=4096` is the remaining time knob.
+
 ## 0. Prerequisites (MANIMA, not this change)
 
-- [ ] 0.1 Render sandbox operational (Docker Desktop / WSL2 backend)
-- [ ] 0.2 `render_animation` working end to end
-- [ ] 0.3 Async job protocol working (`job_status`, `job_result`, `cancel_job`)
-- [ ] 0.4 vLLM serving Apertus 8B int4 under WSL2, OpenAI-compatible endpoint
-- [ ] 0.5 Grounding corpus built from the pinned Manim CE version
-- [ ] 0.6 `generate_animation` with the repair loop working
+- [x] 0.1 Render sandbox operational (Docker Desktop / WSL2 backend)
+      — `manima_server/docker/` + `scripts/smoke_render.py`; rootless-Podman sandbox
+      added, smoke render verified on WSL2
+- [x] 0.2 `render_animation` working end to end — server `core/` + `adapters/` +
+      `server.py`; render path runtime-verified
+- [x] 0.3 Async job protocol working (`job_status`, `job_result`, `cancel_job`)
+      — `manima_server/tests/test_job_manager.py`, `test_reaper.py`
+- [x] 0.4 vLLM serving Apertus 8B int4 under WSL2, OpenAI-compatible endpoint
+      — serving recipe verified (model + flags + CUDA-13/WSL2 fixes); `MANIMA_VLLM_URL`
+- [x] 0.5 Grounding corpus built from the pinned Manim CE version
+      — `scripts/build_corpus.py` builds from `version.py` (CE 0.18.1) into Qdrant
+      `manim-ce`; exercised by the 0.6 generate run
+- [x] 0.6 `generate_animation` with the repair loop working — generate path
+      runtime-verified; first Apertus 8B pass yielded a real taxonomy (ManimGL-confusion
+      / wrong-API, repair barely converging)
 
 ## 1. Prompt suite
 
@@ -56,9 +86,12 @@ assumptions the real server will confirm are marked `ASSUMPTION` in
       — `generators/frontier.py` (Anthropic adapter behind a `SourceGenerator` port)
 - [x] 3.2 Submit via `render_animation` — same sandbox, same probe, same oracle
       — `control.py` (single-pass, matching render's no-repair contract)
-- [ ] 3.3 Same prompt suite, same scoring. **Do not skip.** — mechanism built
-      (control runs the identical suite through the same record/analysis path); the
-      *run* is blocked on §0
+- [ ] 3.3 Same prompt suite, same scoring — mechanism built (control runs the identical
+      suite through the same record/analysis path). **DESCOPED 2026-07-23** by decision:
+      no API-key frontier control will be run. `control.py` + `generators/frontier.py`
+      stay in place for a future model. Accepted consequence (see proposal, "The control
+      condition"): the Apertus numbers stand as an *absolute* measurement — the "hard 0% =
+      model ceiling vs corpus/prompt gap" question is left open, by choice.
 
 ## 4. Instrumentation
 
